@@ -118,7 +118,7 @@ func (srv *Server) ContainerExport(name string, out io.Writer) error {
 	return fmt.Errorf("No such container: %s", name)
 }
 
-func (srv *Server) ImagesSearch(term string) ([]APISearch, error) {
+func (srv *Server) ImagesSearch(term string) ([]registry.SearchResult, error) {
 	r, err := registry.NewRegistry(srv.runtime.config.GraphPath, nil, srv.HTTPRequestFactory(nil))
 	if err != nil {
 		return nil, err
@@ -127,15 +127,7 @@ func (srv *Server) ImagesSearch(term string) ([]APISearch, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	var outs []APISearch
-	for _, repo := range results.Results {
-		var out APISearch
-		out.Description = repo["description"]
-		out.Name = repo["name"]
-		outs = append(outs, out)
-	}
-	return outs, nil
+	return results.Results, nil
 }
 
 func (srv *Server) ImageInsert(name, url, path string, out io.Writer, sf *utils.StreamFormatter) (string, error) {
