@@ -590,7 +590,7 @@ func NewRuntimeFromDirectory(config *DaemonConfig) (*Runtime, error) {
 		return nil, err
 	}
 
-	if err := copyLxcStart(config.GraphPath); err != nil {
+	if err := linkLxcStart(config.GraphPath); err != nil {
 		return nil, err
 	}
 	g, err := NewGraph(path.Join(config.GraphPath, "graph"))
@@ -655,25 +655,21 @@ func (runtime *Runtime) Close() error {
 	return runtime.containerGraph.Close()
 }
 
-func copyLxcStart(root string) error {
+func linkLxcStart(root string) error {
 	sourcePath, err := exec.LookPath("lxc-start")
 	if err != nil {
 		return err
 	}
 	targetPath := path.Join(root, "lxc-start-unconfined")
-	sourceFile, err := os.Open(sourcePath)
-	if err != nil {
+
+	if _, err := os.Stat(targetPath); err != nil && !os.IsNotExist(err) {
 		return err
+	} else if err == nil {
+		if err := os.Remove(targetPath); err != nil {
+			return err
+		}
 	}
-	defer sourceFile.Close()
-	targetFile, err := os.Create(targetPath)
-	if err != nil {
-		return err
-	}
-	defer targetFile.Close()
-	os.Chmod(targetPath, 0755)
-	_, err = io.Copy(targetFile, sourceFile)
-	return err
+	return os.Symlink(sourcePath, targetPath)
 }
 
 // History is a convenience type for storing a list of containers,
